@@ -14,4 +14,4 @@ const createUserToken = async(user, req, res) => {
     })
 }
 
-modele.exportes = createUserToken
+module.exports = createUserToken
