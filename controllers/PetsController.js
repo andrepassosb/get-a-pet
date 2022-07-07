@@ -231,4 +231,86 @@ module.exports = class PetsController{
         }
     }
 
+    static async schedule(req, res){
+        const id = req.params.id
+
+        //check pet exist
+        const pet = await Pet.findOne({_id: id})
+
+        if(!pet){
+            res.status(404).json({mensage: 'Pet não encontrado'})
+            return
+        }
+
+        if(!pet.avaliable){
+            res.status(404).json({mensage: 'Este pet já foi adotado!'})
+            return
+        }
+
+        //check if logged in user registered the pet
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+
+        if(pet.user._id.equals(user._id)){
+            res.status(422).json({mensage: 'Houve um problema ao processar sua solicitação'})
+            return
+        }
+
+
+        //check if user has already scheduled a visit
+        if(pet.adopter && pet.adopter._id.toString() === user._id.toString() ){
+            res.status(422).json({
+                mensage: 'Você já agendou uma visita para este pet'
+            })
+            return
+        }
+
+        // add user to pet
+        pet.adopter = {
+            _id:user.id,
+            name: user.name,
+            image: user.image
+        }
+
+        await Pet.findByIdAndUpdate(id, pet)
+
+        res.status(200).json({
+            message:'Visita agendada com sucesso'
+        })
+    }
+
+    static async concludeAdoption(req, res){
+        const id = req.params.id
+
+        //check pet exist
+        const pet = await Pet.findOne({_id: id})
+
+        if(!pet.avaliable){
+            res.status(404).json({mensage: 'Este pet já foi adotado!'})
+            return
+        }
+
+        if(!pet){
+            res.status(404).json({mensage: 'Pet não encontrado'})
+            return
+        }
+
+        //check if logged in user registered the pet
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+
+        if(pet.user._id.equals(user._id)){
+            res.status(422).json({mensage: 'Houve um problema ao processar sua solicitação, você colocou este pet para adoção'})
+            return
+        }
+
+        pet.avaliable = false
+
+        await Pet.findByIdAndUpdate(id, pet)
+
+        res.status(200).json({
+            message: "Parabéns você adotou !"
+        })
+    }
+
 }
